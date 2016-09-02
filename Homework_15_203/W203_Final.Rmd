@@ -1,0 +1,332 @@
+---
+title: "W203_Final_1"
+author: "Natarajan Shankar"
+date: "August 15, 2016"
+output: pdf_document
+---
+
+# Data Analysis: Perform administrative and basic setup tasks
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+library(MASS); library(gvlma); library(sandwich) ; library(stats)
+suppressMessages(library(lmtest));
+
+# Set a seed for repeatable results, when needed
+set.seed(123456)
+
+# Read in the dating csv file and look at contents
+datingDF <- read.csv("Dating.csv", header=TRUE)
+```
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+
+#
+#
+#
+#
+#
+#
+#
+
+```
+# Ali, thank you for a great term. Cory, thank you for your support - shankar
+```{r fig.width=4.5, fig.height=3.5,echo=FALSE}
+library(png)
+library(grid)
+img <- readPNG("/Users/NatarajanShankar/UC_Berkeley/Homework_15_203/Cartoon2.png")
+grid.raster(img)
+```
+\pagebreak
+
+# Question 15, Part a : Clean up and reverse scale on life_quality variable
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Start by recording the original number of rows - 2252
+nrow(datingDF)
+
+# Check the construct of the life_quality variable
+str(datingDF$life_quality)
+class(datingDF$life_quality)
+levels(datingDF$life_quality)
+
+# life_quality attribute is a factor with 7 levels including "Don't know" and "Refused"
+# Convert the "Don't know" and "refused" factors into <NA>
+datingDF$life_quality[datingDF$life_quality == "Don't know"] <- NA # There are 8 instances
+datingDF$life_quality[datingDF$life_quality == "Refused"] <- NA # there are 12 instances
+
+# Now that two factors have been dropped, ensure that factor levels is reset
+datingDF$life_quality <- droplevels(datingDF$life_quality)
+
+# convert life_quality data into numeric form
+datingDF$life_quality <- as.numeric(datingDF$life_quality)
+
+# reverse the ranking within life_quality so that 5 = excellent and 1 = poor
+datingDF$life_quality <- (max(datingDF$life_quality, na.rm = T) + 
+                    min(datingDF$life_quality, na.rm = T) - datingDF$life_quality)
+
+# What is the mean quality_of_life in the sample
+meanQoL <- mean(datingDF$life_quality, na.rm = TRUE)
+meanQoL
+```
+
+## \textcolor{blue}{Answer to Question 15, Part a :}
+## The mean quality_of_life in the sample is : ```r round(meanQoL, 5)```
+
+\pagebreak
+
+# Question 15, Part b : Clean up years_in_relationship variable
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Check the construct of the years_in_relationship variable
+class(datingDF$years_in_relationship)
+levels(datingDF$years_in_relationship)
+```
+## \textcolor{red}{The number "97" looks suspicious but the Pew site does not say anything suspicious other than "97 or more". Leave as is}
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+
+# The years_in_relationship attribute is a factor with 7 levels including " " and "Refused"
+# Convert the "Don't know" and "refused" into <NA>
+datingDF$years_in_relationship[datingDF$years_in_relationship == " "] <- NA
+datingDF$years_in_relationship[datingDF$years_in_relationship == "Refused"] <- NA
+
+# Now that two factors have been removed, redo the factor levels
+datingDF$years_in_relationship <- droplevels(datingDF$years_in_relationship)
+
+# Recode the years_in_relationship values as numeric
+datingDF$years_in_relationship <- as.numeric(as.character(datingDF$years_in_relationship))
+nrow(datingDF)
+
+# What is the mean of years_in_relationship in the sample?
+meanYiR <- mean(datingDF$years_in_relationship, na.rm = TRUE)
+meanYiR
+```
+
+## \textcolor{blue}{Answer to Question 15, Part b :} 
+## The mean years_in_relationship in the sample is : ```r round(meanYiR, 5)```
+
+\pagebreak
+
+# Question 15, Part c : First step with preparing for Nested Regression
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Question 15, Part c : Start from the original data set
+nrow(datingDF)
+
+# Study the use_internet variable before using it
+str(datingDF$use_internet)
+class(datingDF$use_internet)
+levels(datingDF$use_internet)
+
+# The years_in_relationship attribute is a factor with 5 levels 
+# including " ", "Don't know" and "Refused"
+# Convert the "Don't know" and "refused" into NA
+datingDF$use_internet[datingDF$use_internet == " "] <- NA
+datingDF$use_internet[datingDF$use_internet == "Don't know"] <- NA
+datingDF$use_internet[datingDF$use_internet == "Refused"] <- NA
+
+# drop the unused factor levels
+datingDF$use_internet <- droplevels(datingDF$use_internet)
+
+# Convert into numeric
+datingDF$use_internet <- as.numeric(datingDF$use_internet)
+
+# Find the number of rows that have no missing values for 
+# life_quality, years_in_relatinship and use_internet
+# Note : data in datingDF is being copied into completeDF
+completeDF <- datingDF[complete.cases(datingDF$years_in_relationship, 
+                            datingDF$life_quality, datingDF$use_internet),]
+
+# Count the number of complete rows : 1090
+nrow(completeDF)
+
+```
+
+##  \textcolor{blue}{Answer to Question 15, Part c :} 
+## Number of cases with complete values for life_quality, years_in_relatinship and use_internet is : ```r nrow(completeDF)```
+
+\pagebreak
+
+# Question 15, Part d : Fit an OLS Model
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Fit an OLS model to the data in the previpus step that predicts life_quality 
+# as a linear function of years_in_relationship
+modelYiR <- lm(life_quality ~ years_in_relationship, data = completeDF)
+summary(modelYiR)
+
+# Look for practical significance through R^2, P-value and F value
+anova_modelYiR <- anova(modelYiR)
+anova_modelYiR
+```
+
+##  \textcolor{blue}{Answers to Question 15, Part d :} 
+## The slope coefficient for life_quality vs. years_in_relationship is : ```r round(modelYiR$coef[2], 5)```
+
+## Without any predictors, the model predicts that a rating of ```r round(modelYiR$coef[1], 5)``` is the comparison score, at a high level of statistical significance (as ascertained from the corresponding P-value)
+
+## For the slope, the associated p-value is ```r round(summary(modelYiR)$coefficients[8], 5)``` and because the value is less than 0.05, this slope value is statistically significant. The F value in the associated model is ```r round(anova_modelYiR$F[1], 5)```  which is greater than 1, and at a p-value of 0.01146, and so the model and hence the slope is statistically significant.
+
+## However, the corresponding R^2 value is : ```r round(summary(modelYiR)$r.squared, 5)```. The corresponding Pearson coefficient is : ```r round(sqrt(summary(modelYiR)$r.squared), 5)```. This value indicates a low correlation between the predictor and the outcome and is of the order of 7.7%
+
+\pagebreak
+
+# Question 15, Part e : Fit a second OLS model that also includes use_internet
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Fit an OLS model to the data that predicts life_quality 
+# as a linear function of years_in_relationship AND use_internet
+modelYiR_UI <- lm(life_quality ~ years_in_relationship + use_internet, data = completeDF)
+summary(modelYiR_UI)
+
+# Look for practical significance through F value and R^2 value
+anova_modelYiR_UI <- anova(modelYiR_UI)
+anova_modelYiR_UI
+```
+
+##  \textcolor{blue}{Answer to Question 15, Part e :} 
+## The slope coefficient for use_internet is : ```r round(modelYiR_UI$coef[3], 5)```. 
+
+## Given the associated p-value of ```r round(summary(modelYiR_UI)$coefficients[12], 8)``` there is strong evidence that this value is statistically significant. 
+
+## Also, given that the F value in the associated model is ```r round(anova_modelYiR_UI$F[2], 5)```, a much bigger F compared to the F value for years_in_relationship alone, the new predictor and its slope are statistically and practically significant. The use_internet variable adds high practical significance.
+
+## The corresponding R^2 value is : ```r round(summary(modelYiR_UI)$r.squared, 5)``` and the corresponding Pearson coefficient is : ```r round(sqrt(summary(modelYiR_UI)$r.squared), 5)```. This value indicates a correlation between the predictor and the outcome and is of the order of 16% i.e. 16% of the outcome variable can be explainefd by this predictor.
+\pagebreak
+
+# Question 15, Part f : Assess improvement from first model to the second
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Compute the F ratio and associated p-value between the two regression models
+# Assess the improvement from the first model to the second
+modelComparisonData <- anova(modelYiR, modelYiR_UI)
+modelComparisonData
+
+# extract the F value
+modelComparisonData$F[2]
+
+# extract the p-value
+modelComparisonData$Pr[2]
+```
+
+##  \textcolor{blue}{Answer Question 15, Part f :} 
+## The significance (akin to comparing R^2) is tested by examining the F-ratio and the associated p-value
+
+## Inclusion of the use_internet variable significantly improved the fit of the new model with F(1, 1087) =  ```r round(modelComparisonData$F[2], 5)```, with p-value of ```r round(modelComparisonData$Pr[2], 9)```
+
+## F Factor improvement from first model to second model is a factor of : ```r round(anova_modelYiR_UI$F[2]/anova_modelYiR$F[1], 5)``` 
+
+\pagebreak
+
+# Question 16 Part a : Logistic Regression
+## \textcolor{red}{This is question 16, start again with original data set from Pew rather than using data from Question 15}
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# start from original data set
+datingDF <- read.csv("Dating.csv", header=TRUE)
+
+# Study the flirted_online variable before using it
+str(datingDF$flirted_online)
+class(datingDF$flirted_online)
+levels(datingDF$flirted_online)
+
+# The flirted_online attribute is a factor with 5 levels 
+# including " ", "Don't know" and "Refused"
+# Convert the " ", Don't know" and "refused" into NA
+datingDF$flirted_online[datingDF$flirted_online == " "] <- NA
+datingDF$flirted_online[datingDF$flirted_online == "Don't know"] <- NA
+datingDF$flirted_online[datingDF$flirted_online == "Refused"] <- NA
+
+# drop the unused factor levels
+datingDF$flirted_online <- droplevels(datingDF$flirted_online)
+
+# Now look for complete cases across all of flirted_online
+# Note : data in datingDF is being copied into completeDF
+completeDF <- datingDF[complete.cases(datingDF$flirted_online),]
+
+# Compute new number of valid rows
+nrow(completeDF)
+
+# What are the odds that a respondent in the sample has flirted online at some point
+odds_flirted <- nrow(completeDF[completeDF$flirted_online =="Yes",])/
+                      nrow(completeDF[completeDF$flirted_online =="No",])
+odds_flirted
+```
+## \textcolor{blue}{Answer to Question 16 Part a :} 
+## The odds that a respondent in the sample has flirted online is : ```r round(odds_flirted, 5)```. The number is reached by dividing the number that reported "yes" by the number that reported "no", from the original data set with NA rows removed.
+
+\pagebreak
+
+# Question 16, Part b : Conduct a Logistic Regression to predict flirted_online versus usr
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+# Study the usr variable (where the respondent lives) before using the variable
+str(datingDF$usr)
+class(datingDF$usr)
+levels(datingDF$usr) 
+
+# Convert the usr value of " " to NA prior to using it
+datingDF$usr[datingDF$usr == " "] <- NA
+
+# drop the unused factor levels
+datingDF$usr <- droplevels(datingDF$usr)
+
+# Find the number of rows that have no missing values for 
+# flirted_online and usr
+completeGLMDF <- datingDF[complete.cases(datingDF$flirted_online, datingDF$usr),]
+
+# Establish the number of complete rows
+nrow(completeGLMDF)
+
+# Look at the creation of dummy variable combinations for the 3 tiers in usr
+contrasts(completeGLMDF$usr)
+
+# verify levels of each categorivcal variable prior to processing
+levels(completeGLMDF$usr) # "rural" is baseline
+levels(completeGLMDF$flirted_online) # "No" is baseline
+
+# relevel towards "Suburban"" so that we can directly see odds for focus 
+# groups "Rural"" and "Urban" and the odds can be directly compared
+completeGLMDF$usr <- relevel(completeGLMDF$usr, "Suburban")
+
+# Re-look at the creation of dummy variable combinations for the 3 tiers in usr
+# Suburban needs to be the baseline group
+contrasts(completeGLMDF$usr)
+
+# Run the Logistical Regression
+glmModel <- glm(flirted_online ~ usr, data = completeGLMDF, family = binomial(), na.rm = TRUE)
+
+# Look at the data from Logistical Regression
+summary(glmModel)
+glmModel$aic
+
+# get a feel for the overall fit of the model using analysis of deviance
+glmModel_AoD <- anova(glmModel, test = "Chisq")
+glmModel_AoD
+# Deviance analysis shows that improvement over the mean is significant
+
+# Check confidence intervals of the coefficients
+exp(confint(glmModel))
+
+# also compute the betas to understand impact of predictors on outcome
+lm.beta(glmModel)
+```
+## \textcolor{blue}{Answer to Question 16 b :} 
+## The AIC value for the Logistic Regression model is : ```r round(AIC(glmModel), 5)```
+
+\pagebreak
+
+# Question 16, Part c : Odds comparison
+
+```{r error=TRUE, fig.width = 6, fig.height = 4.5}
+glmModel$coefficients
+
+# Look at the exponent of the coefficient to get a feel for increase in odds
+odds <- exp(glmModel$coefficients)
+odds
+
+# How much bigger are the odds that an urban responden has flirted online 
+# than the odds that a rural respondent has flirted online
+# Index 3 is Urban, Index 2 is Rural
+odds[3]/odds[2]
+```
+# \textcolor{blue}{Answer to Question 16 part c :} 
+## The odds multiple of a urban resident having flirted online versus a rural resident having flirted online is :  ```r round(odds[3]/odds[2], 5)```. This effect is significant because it is greater than 1.
+
+## The p-value 8.934e-05 also shows that the effect of the associated model is significant

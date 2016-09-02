@@ -1,0 +1,370 @@
+---
+title: "Lab_3"
+author: "Natarajan Shankar"
+date: "July 27, 2016"
+output: pdf_document
+---
+
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+# Load required libraries
+library(gmodels)
+library(ggplot2)
+library(car)
+library(lsr)
+```
+
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+# Load the base 1993 data provided along with assignment handout
+load("GSS.Rdata")
+
+```
+\pagebreak
+
+# \textcolor{blue}{DATA ANALYSIS AND SHORT ANSWER SECTION}
+
+## \textcolor{blue}{=============================================================================}
+## \textcolor{blue}{Problem 14: Conduct a Chi-Square test to determine if there is association}
+## \textcolor{blue}{between marital status (marital) and political orientation (politics)}
+## \textcolor{blue}=============================================================================}
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+# extract just the two fields of interest - marital and politics - so that we can 
+# deal with a smaller data frame. Call the data frame - dataDF
+dataDF <- data.frame(GSS$marital, GSS$politics)
+names(dataDF) <- c("marital", "politics")
+
+# =============================================================================
+# View the data to understand its makeup and quirks
+# =============================================================================
+# Check class type of "marital", verify as "factor" for applying chi square test
+# Check class type of "politics", verify as "factor" for applying chi square test
+class(dataDF$marital); class(dataDF$politics)
+
+# Check levels of "marital" and "politics"
+levels(dataDF$marital) ; levels(dataDF$politics)
+
+# Also look at summary to see NAs
+summary(dataDF$marital); summary(dataDF$politics)
+
+# =============================================================================
+# Clean the data
+# =============================================================================
+# Per the codebook, marital answers of "no answer" are included. Remove them
+dataDF <- dataDF[!dataDF$marital == "no answer",]
+
+# "marital" attribute has NA as factor, clean it up prior to processing
+# "politics" has <NA>, these are true NOT available, remove them.
+#dataDF <- dataDF[dataDF$marital != "NA",]
+dataDF <- dataDF[-which(dataDF$marital == "NA"), ]
+dataDF <- dataDF[!is.na(dataDF$politics),]
+
+# Drop the "NA"factor from marital, those rows have been removed
+dataDF$marital = droplevels(dataDF$marital)
+
+# Check how many data points are in the base data frame
+nrow(dataDF)
+
+# =============================================================================
+# Run the Chisquare test, also display CrossTable to verify expected cell count
+# =============================================================================
+# Run the Chisquare test
+CrossTable(dataDF$marital, dataDF$politics, chisq=TRUE, expected=TRUE, sresid=TRUE, format="SPSS")
+```
+  * \textcolor{blue}{All cells show expected value above 5}
+  * \textcolor{blue}{There is not a need to run the Fisher test, Chi square test is appropriate}
+
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+# Conduct an effect size calculation
+effect_size <- sqrt(44.2255/(nrow(dataDF) * 4))
+effect_size
+```
+## =============================================================================
+## Answers to questions : Problem 14
+## =============================================================================
+## Answer to Question 14 - A
+  * Null Hypothesis : "Marital" and "Politics" are independent
+  * Alternative Hypothesis : Gain confidence that "Marital" and "Politics" are related in some way
+
+## Answer to Question 14 - B
+    * Value of the test statistic is : 44.2255
+    * p value is : 0.0001822704
+
+## Answer to Question 14 - C
+    * The effect size is : ```r  effect_size ```
+
+  * Verify using lsr package also: ```r cramer_data <- cramersV(dataDF$marital, dataDF$politics); cramer_data```
+  
+## Answer to Question 14 - D
+  * Conclusion:
+  * There was an significant association between "marital" and "politics" with the test statistic of 44.225 at p < 0.05
+  * This seems to represent that politics is impacted by marital 
+  * Based upon this data, the NULL hypopthesis is rejected and confidence is gained that the alternative hypothesis is true.
+  * Based upon the computed effect size of 0.08756363, the effect size is "small", leaning to "medium", for 16 degrees of freedom
+
+\pagebreak
+
+## \textcolor{blue}{=============================================================================}
+## \textcolor{blue}{Problem 15: Conduct a Pearson Correlation Analysis to examine the association }
+## \textcolor{blue}{between age when married (agewed) and hours of TV watched (tvhours)}
+## \textcolor{blue}=============================================================================}
+```{r, error=TRUE, fig.width = 3.5, fig.height = 3.5}
+
+# extract just the two fields of interest
+dataDF <- data.frame(GSS$agewed, GSS$tvhours)
+names(dataDF) <- c("agewed", "tvhours")
+
+# =============================================================================
+# View the data to understand its makeup and quirks
+# =============================================================================
+# Check class type of "agewed" 
+# Check class type of "tvhours"
+class(dataDF$agewed); class(dataDF$tvhours)
+
+# Both variables verified to be numeric
+
+# Check data types in "agewed" and "tvhours"
+summary(dataDF$agewed); summary(dataDF$tvhours)
+
+# =============================================================================
+# Clean the data
+# =============================================================================
+# The "no answer" for agewed is coded as 99, remove these
+# the "no answer" for tvhours is also coded as 99, remove these
+dataDF <- dataDF[!dataDF$agewed == 99,]
+dataDF <- dataDF[!dataDF$tvhours == 99,]
+
+# agewed value of 0 appears to be erroneous, remove them
+dataDF <- dataDF[!dataDF$agewed == 0,]
+
+# Re-check data types in "agewed" and "tvhours"
+summary(dataDF$agewed); summary(dataDF$tvhours)
+
+# Check how many data points are in the base data frame
+nrow(dataDF)
+# =============================================================================
+# Get a feel for Normality of data
+# =============================================================================
+qqnorm(dataDF$agewed)
+qqnorm(dataDF$tvhours)
+
+# =============================================================================
+# Run the Pearson test, assume that sample size is large enough to not
+# require the running od Spearman test
+# =============================================================================
+pearson_result <- cor.test(dataDF$agewed, dataDF$tvhours, method="pearson", conf.level=0.95, na.rm=TRUE)
+pearson_result
+
+```
+
+## =============================================================================
+## Answers to questions : Problem 15
+## =============================================================================
+## Answer to Question 15 - A
+  * Null hypothesis is  that correlation is 0, i.e no correlation between agewed and tvhours
+  * Alternative hypothesis is that the correlaton between agewed and tvhours is different from 0
+  
+## Answer to Question 15 - B
+  * Test statistic is : ```r round(pearson_result$statistic, 2)``` 
+  * p-value is : ```r pearson_result$p.value```
+  * Correlation coefficient is ```r sub("^(-?)0.", "\\1.", sprintf("%.2f", pearson_result$estimate))```
+
+## Answer to Question 15 - C
+* Conclusion:
+  * Pearson's correlation between agewed and tv hours is ```r pearson_result$estimate``` and p-value is ```r pearson_result$p.value```
+  * Based upon the correlation statistic and the statistically non-significant p value it can be conlcuded that agewed and tvhours are weakly correlated and that the Null hypotheses of zero correlation cannot be rejected
+
+\pagebreak
+
+
+
+## \textcolor{blue}{=============================================================================}
+## \textcolor{blue}{Problem 16: Create a new binary variable "Married" that denotes whether an }
+## \textcolor{blue}{individual is currently married or not married. Then consider just the 23 year }
+## \textcolor{blue}{olds in this sample. Conduct a Wilcox ran-sum test to determine whether the }
+## \textcolor{blue}{new married variable is associated with children of 23 year olds}
+## \textcolor{blue}=============================================================================}
+
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+# Look only for 23 year olds
+dataDF <- GSS[GSS$age == 23,]
+
+# For convenience, extract just the two fields of interest
+dataDF <- data.frame(dataDF$marital, dataDF$childs)
+names(dataDF) <- c("marital", "childs")
+
+# =============================================================================
+# View the data to understand its makeup and quirks
+# =============================================================================
+# Check class type of "agewed" - should be numeric
+# Check class type of "tvhours" - should be factor
+class(dataDF$marital); class(dataDF$childs)
+
+# Check data types in "marital" and "childs"
+summary(dataDF$marital); summary(dataDF$childs)
+
+# =============================================================================
+# Clean the data
+# =============================================================================
+# "marital" attribute has NA, clean it up prior to processing
+dataDF <- dataDF[dataDF$marital != "NA",]
+
+# Drop the "NA"factor from marital, those rows have been removed
+dataDF$marital = droplevels(dataDF$marital)
+
+## Create a new variable "married"
+dataDF$married <- factor(ifelse(dataDF$marital == "married", as.numeric(1), as.numeric(0)))
+
+# From the codebook, childs = 9 is a "no answer". Remove these rows
+dataDF <- dataDF[!dataDF$childs == 99,]
+
+# For convenience, extract just the two fields of interest
+dataDF <- data.frame(dataDF$married, dataDF$childs)
+names(dataDF) <- c("married", "childs")
+
+# Check data types in "marital" and "childs"
+class(dataDF$married); class(dataDF$childs)
+
+# Check homogeniety of variance
+leveneTest(dataDF$childs, dataDF$married, center=mean)
+# p-value is statistically significant, The Homogeneity of variance requirement is violated
+# However, the sample size is large, let's continue with Wilcox Rank Sum test
+
+# =============================================================================
+# Run the Wilcox Rank Sum test, ignore the warning message
+# =============================================================================
+# run the wilcox test
+wilcoxModel <- wilcox.test(dataDF$childs, as.numeric(dataDF$married), paired=FALSE)
+wilcoxModel
+
+# What is the mean of your new "married" variable, proportion of cases coded 1, out of total
+mean_married <- sum(dataDF[dataDF$married == "1",]$childs)/length(dataDF[dataDF$married == "1",]$childs)
+
+# Proportion of married 23 year olds with children, amongst all with children
+m_23_children <- nrow(dataDF[((dataDF$married == 1) & (dataDF$childs != 0)), ])/
+                        nrow(dataDF[dataDF$married == 1, ])
+```
+## =============================================================================
+## Answers to questions : Problem 16
+## =============================================================================
+## Answer to Question 16 - A
+  * Mean of the new "married" variable is: ```r mean_married``` children per married 23 year old
+  * Proportion of married 23 year olds with children : ```r m_23_children```
+  
+## Answer to Question 16 - B
+  * Null hypothesis : The two groups (married and childs) are not different
+  * Alternative hypothesis : The two groups (married and childs) are different
+
+## Answer to Question 16 - C
+  * Test statistic is ```r wilcoxModel$statistic```
+  * p-value is ```r wilcoxModel$p.value```
+  
+## Answer to Question 16 - D : effect size calculation
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+rFromWilcox <- function (wilcoxModel, N) {
+  z <- qnorm(wilcoxModel$p.value/2)
+  r <- z/sqrt(N)
+  cat(wilcoxModel$data.name, "Effect size, r = ", r)
+}
+
+rFromWilcox(wilcoxModel, nrow(dataDF))
+
+```
+
+## Answer to Question 16 - E  : Conclusion
+  * Conclusion: Based upon the p-value and the statistic above, the two groups are different
+  * and the NULL hypothesis can be rejected and confidence in alternate is gained
+  * Married status is associated with number of children for respondents who are 23 years old. 
+  * The computed effect size is subjectively "huge".
+
+\pagebreak
+
+
+
+## \textcolor{blue}{=========================================}
+## \textcolor{blue}{Problem 17: Conduct an ANOVA to determine if there is an association between  }
+## \textcolor{blue}{religious affiliation (relig) and age when married (agewed)}
+## \textcolor{blue}{=========================================}
+```{r, error=TRUE, fig.width = 6, fig.height = 4.5}
+
+# extract just the fields of interest, "relig", "age", and "agewed"
+# put into a convenience dataframe, dataDF
+dataDF <- data.frame(GSS$relig, GSS$age, GSS$agewed)
+names(dataDF) <- c("relig", "age", "agewed")
+
+# =============================================================================
+# View the important data to understand its makeup and quirks
+# =============================================================================
+# Check class type of "relig" - should be factor
+# Check class type of "agewed" - should be factor
+class(dataDF$relig); class(dataDF$agewed)
+
+# Check data types in "relig" and "agewed"
+summary(dataDF$relig); summary(dataDF$agewed)
+
+# =============================================================================
+# Clean the data
+# =============================================================================
+#Remove instances where agewed is greater than age
+dataDF <- dataDF[!(GSS$agewed > GSS$age), ]
+
+# remove the age column now, we are done with it
+dataDF <- data.frame(dataDF$relig, dataDF$agewed)
+names(dataDF) <- c("relig", "agewed")
+
+# The "no answer" for agewed is coded as 99, remove these as well
+dataDF <- dataDF[!is.na(dataDF$relig),]
+dataDF <- dataDF[!dataDF$agewed == 99,]
+
+# agewed value of 0 appears to be erroneous, remove them
+dataDF <- dataDF[!dataDF$agewed == 0,]
+
+# get rid of the NAs in the relig column
+dataDF <- dataDF[-which(dataDF$relig == "NA"), ]
+
+# get rid of the DKs in the relig column
+dataDF <- dataDF[-which(dataDF$relig == "DK"), ]
+
+# Drop the "NA"factor from relig, those rows have been removed
+dataDF$relig = droplevels(dataDF$relig)
+
+# =============================================================================
+# Run Levene's test, Homogenity of variance is a requirement
+# =============================================================================
+leveneTest(dataDF$agewed, dataDF$relig, center = mean)
+# The Levene Test p-value is not statistically significant, the homogenity of variance assumption 
+# is not violated
+
+# =============================================================================
+# now run ANOVA and gather the output
+# =============================================================================
+aovData <- aov(agewed ~ relig, data = dataDF)
+summary(aovData)
+
+# Manually compute the effect size
+effectSize <- (804 - (2* 24.75))/(804 + 29430 + 24.75)
+effectSize ^ 2
+```
+## ==================================
+## Answers to questions : Problem 17
+## ==================================
+## Answer to Question 17 - A
+  * Null hypothesis : All group means are equal
+  * Alternative hypothesis : At least one group mean is different from another
+  
+## Answer to Question 17 - B
+  * The test statistic is an F value of : 8.12
+  * The p value is : 1.85e-06
+  
+## Answer to Question 17 - C
+  * There is statistically significant difference between individual pairs of groups
+  * This is indicated by the p-value of < 0.05
+  
+## Answer to Question 17 - D
+  * Conclusions:
+  * The F ratio has the value 8.12, degrees of freedom (4, 1189), F(4, 1189) = 8.12
+  * The F ratio value > 1 is indicating that all group means are not equal, This along
+  * the p-value indicates that the Null hypothesis 
+  * can be rejected and confidence in the alternative is gained. However, the effect 
+  * size will determine actual practical significance
+  * The effect  size is ```r effectSize^2```
+  * In spite of statistically significanct results, the effect size is "low""
+

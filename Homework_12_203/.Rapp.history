@@ -1,0 +1,17 @@
+load("/Users/NatarajanShankar/UC_Berkeley/Homework_12_203/GSS.Rdata")
+head(GSS)
+factors(GSS$marital)
+factor(GSS$marital)
+nlevels(GSS$marital)
+levels(GSS$marital)
+load("/Users/NatarajanShankar/UC_Berkeley/Homework_12_203/GSS.Rdata")
+nlevels(GSS$marital)
+levels(GSS$marital)
+levels(GSS$politics)
+levels(GSS$relig)
+load("/Users/NatarajanShankar/UC_Berkeley/Homework_12_203/GSS.Rdata")
+GSS
+load(GSS.Rdata)
+load("GSS.Rdata")
+GSS
+getwd()
